@@ -54,6 +54,11 @@ def test_latest_per_key_keeps_newest_version(spark):
     expected = spark.createDataFrame([(1, "new"), (2, "only")], "order_id INT, note STRING")
     assertDataFrameEqual(result, expected)          # order-insensitive by default
 
+# Note: in PySpark 3.5, assertDataFrameEqual needs pandas + pyarrow and breaks with NumPy 2.
+# Two dependency-free alternatives (the capstone uses the first one):
+#   assert sorted(tuple(r) for r in result.collect()) == [(1, "new"), (2, "only")]
+#   chispa.assert_df_equality(result, expected, ignore_row_order=True)
+
 def test_clean_orders_flags_non_positive_quantity(spark):
     df = spark.createDataFrame([("1", "5", "10", "0", "9.99", "completed",
                                  "2026-10-01 10:00:00", "2026-10-01 10:00:00", None, None)],

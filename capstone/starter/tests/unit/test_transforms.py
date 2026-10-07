@@ -49,8 +49,6 @@ def test_order_date_uses_dubai_business_day(spark):
 
 
 def test_latest_per_key_keeps_newest_version(spark):
-    from pyspark.testing import assertDataFrameEqual
-
     from phoenix.transforms import latest_per_key
 
     df = spark.createDataFrame([
@@ -58,9 +56,8 @@ def test_latest_per_key_keeps_newest_version(spark):
         (1, datetime(2026, 10, 1, 12), datetime(2026, 10, 1, 12), "new"),
         (2, datetime(2026, 10, 1, 9), datetime(2026, 10, 1, 9), "only"),
     ], "order_id INT, updated_at TIMESTAMP, _ingested_at TIMESTAMP, note STRING")
-    result = latest_per_key(df).select("order_id", "note")
-    expected = spark.createDataFrame([(1, "new"), (2, "only")], "order_id INT, note STRING")
-    assertDataFrameEqual(result, expected)
+    result = sorted(tuple(r) for r in latest_per_key(df).select("order_id", "note").collect())
+    assert result == [(1, "new"), (2, "only")]   # sort first: row order from Spark is never guaranteed
 
 
 def test_latest_per_key_exact_duplicates_collapse_to_one(spark):
