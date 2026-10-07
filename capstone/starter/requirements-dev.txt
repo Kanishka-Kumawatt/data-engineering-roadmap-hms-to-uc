@@ -1,4 +1,5 @@
 pyspark==3.5.*
-pandas>=1.5        # needed by pyspark.testing.assertDataFrameEqual
+pandas>=1.5        # pandas + pyarrow are needed by pyspark.testing.assertDataFrameEqual
+pyarrow>=4
 pytest>=8
 ruff>=0.6
