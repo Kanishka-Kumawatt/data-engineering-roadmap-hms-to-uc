@@ -69,7 +69,7 @@ When you run Spark locally with Hive support turned on, Spark **creates a real e
 # Install Java 17 first (Microsoft Build of OpenJDK / Temurin), then:
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install "pyspark==3.5.*" "delta-spark==3.2.*" pytest chispa
+pip install "pyspark==3.5.*" "delta-spark==3.2.*" pandas pytest chispa
 ```
 
 > **Windows note:** some Spark file operations on Windows need `winutils.exe` and `HADOOP_HOME`. If local Spark gives you trouble, use **WSL2 (Ubuntu)**. It's smoother, and most production DE tooling assumes Linux.
