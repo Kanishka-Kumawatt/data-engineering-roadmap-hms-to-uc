@@ -1,0 +1,59 @@
+resources:
+  jobs:
+    phoenix_daily_sales:
+      name: phoenix_daily_sales_${bundle.target}
+      description: "DE-142 Daily Sales Performance: bronze -> silver -> gold -> DQ gate"
+      schedule:
+        quartz_cron_expression: "0 30 5 * * ?"
+        timezone_id: Asia/Dubai
+        pause_status: PAUSED          # unpause in prod once validated
+      email_notifications:
+        on_failure: ["${var.notify_email}"]
+      timeout_seconds: 3600
+      max_concurrent_runs: 1          # two concurrent runs would race on the same MERGE targets
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: lookback_days
+          default: "3"
+        - name: run_date
+          default: ""
+        - name: job_run_id
+          default: "{{job.run_id}}"
+      # No cluster config = serverless job compute. For classic compute add job_clusters with a UC access mode.
+      tasks:
+        - task_key: bronze
+          notebook_task: { notebook_path: ../notebooks/01_bronze.py }
+          max_retries: 2
+          min_retry_interval_millis: 60000
+        - task_key: silver
+          depends_on: [{ task_key: bronze }]
+          notebook_task: { notebook_path: ../notebooks/02_silver.py }
+          max_retries: 1
+        - task_key: gold
+          depends_on: [{ task_key: silver }]
+          notebook_task: { notebook_path: ../notebooks/03_gold.py }
+        - task_key: dq_gate
+          depends_on: [{ task_key: gold }]
+          notebook_task: { notebook_path: ../notebooks/04_dq_gate.py }
+
+    phoenix_migration:
+      name: phoenix_migration_${bundle.target}
+      description: "Legacy retail -> UC: inventory/plan -> execute (dry run by default) -> validate"
+      max_concurrent_runs: 1
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: legacy_catalog
+          default: capstone_legacy
+        - name: dry_run
+          default: "true"
+      tasks:
+        - task_key: inventory
+          notebook_task: { notebook_path: ../notebooks/10_migration_inventory.py }
+        - task_key: execute
+          depends_on: [{ task_key: inventory }]
+          notebook_task: { notebook_path: ../notebooks/11_migration_execute.py }
+        - task_key: validate
+          depends_on: [{ task_key: execute }]
+          notebook_task: { notebook_path: ../notebooks/12_migration_validate.py }
